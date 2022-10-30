@@ -1,0 +1,176 @@
+# Load libraries
+##library(tidyverse) # data manipulation
+##library(arules) # mining association rules and frequent itemsets
+##library(arulesViz) # visualization techniques for association rules
+##library(knitr) # dynamic report generation
+##library(gridExtra) # provides a number of user-level functions to work with "grid" graphics
+##library(lubridate) # work with dates and times
+
+
+#Basket Analysis
+## Algorithm based on 3 parameters support,confidence and lift
+## Support - Frequency of (Bread,Butter) / Total Transaction = p(bread ∩ butter)
+## Confidence - Frequency of (Bread,Butter) / Frequency(Bread) = p(bread ∩ butter) / p(bread)
+## Here we are calculating the frequency of those items together divided by the total transaction containing the first item 
+## lift - Support (Bread,Butter) / Support Bread * Support Butter
+## Here the parameter will show the lift of the x item impacting the sales of item y
+## load Packages
+pacotes <- c("arulesViz","arules","tidyverse","knitr","gridExtra","lubridate")
+
+## Install all the needed packages to deploy the model
+
+if(sum(as.numeric(!pacotes %in% installed.packages()))!= 0){
+  instalador <- pacotes[!pacotes %in% installed.packages()]
+  for (i in 1: length(instalador)) {
+    install.packages(instalador,dependencies = T)
+    break()}
+  sapply(pacotes, require, character = T)
+} else {
+  sapply(pacotes,require,character = T)
+}
+
+## Bringing the csv to R
+dados <- arules::read.transactions("C:\\Users\\thale\\Desktop\\Excel\\BasketAnalysis\\20221030_BasketAnalysis.csv",
+                                   sep = ";")
+
+str(dados) ## Verify the structure of the dataset
+inspect(head(dados)) ## Check all the basket based on the dataset
+
+
+## Return the number of transaction
+length(dados)
+
+## EDA
+## Frequency Table - Absolute
+itemFrequencyPlot(dados,topN = 15, type = "absolute", horiz = TRUE)
+
+## Frequency Table - Relative
+itemFrequencyPlot(dados, topN=15, type="relative", col="lightcyan2", xlab="Item name", 
+                  ylab="Frequency (relative)", main="Relative Item Frequency Plot")
+
+## Frequency table
+itemFrequency(dados)
+
+## Frequency Table "grapes" for instance or any item needed
+itemFrequency(dados)["grapes"]
+
+## Probabilidade levando em consideracao todos os itens com "milk" no nome
+itemFrequency(dados)[grep("milk",itemLabels(dados))]
+
+## Support and confidence values
+supportLevels <- c(0.1, 0.05, 0.01, 0.005)
+confidenceLevels <- c(0.9, 0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.1)
+
+# Empty integers 
+rules_conf90 <- integer(length=9)
+rules_conf80 <- integer(length=9)
+rules_conf70 <- integer(length=9)
+rules_conf60 <- integer(length=9)
+rules_conf50 <- integer(length=9)
+rules_conf40 <- integer(length=9)
+rules_conf30 <- integer(length=9)
+rules_conf20 <- integer(length=9)
+rules_conf10 <- integer(length=9)
+
+# Apriori algorithm with a confidence of 90%
+for (i in 1:length(confidenceLevels)) {
+  rules_conf90[i] <- length(apriori(dados, parameter=list(sup=supportLevels[i], 
+                           conf=confidenceLevels[9], target="rules")))
+                                      }
+
+# Apriori algorithm with a confidence of 80%
+for (i in 1:length(confidenceLevels)){
+  rules_conf80[i] <- length(apriori(dados, parameter=list(sup=supportLevels[i], 
+                          conf=confidenceLevels[8], target="rules")))
+                                    }
+
+# Apriori algorithm with a confidence of 70%
+for (i in 1:length(confidenceLevels)){
+  rules_conf70[i] <- length(apriori(dados, parameter=list(sup=supportLevels[i], 
+                                  conf=confidenceLevels[7], target="rules")))
+                                    }
+# Apriori algorithm with a confidence of 60%
+for (i in 1:length(confidenceLevels)){
+  rules_conf60[i] <- length(apriori(dados, parameter=list(sup=supportLevels[i], 
+                      conf=confidenceLevels[6], target="rules")))
+}
+
+# Number of rules found with a confidence level of 90%
+plot1 <- qplot(confidenceLevels, rules_conf90, geom=c("point", "line"), 
+               xlab="Confidence level", ylab="Number of rules found", 
+               main="Apriori with a confidence level of 90%") +
+  theme_bw()
+
+# Number of rules found with a confidence level of 80%
+plot2 <- qplot(confidenceLevels, rules_conf80, geom=c("point", "line"), 
+               xlab="Confidence level", ylab="Number of rules found", 
+               main="Apriori with a confidence level of 80%") + 
+  #scale_y_continuous(breaks=seq(0, 10, 2)) +
+  theme_bw()
+
+# Number of rules found with a confidence level of 70%
+plot3 <- qplot(confidenceLevels, rules_conf70, geom=c("point", "line"), 
+               xlab="Confidence level", ylab="Number of rules found", 
+               main="Apriori with a confidence level of 70%") + 
+  #scale_y_continuous(breaks=seq(0, 50, 10)) +
+  theme_bw()
+
+# Number of rules found with a confidence level of 60%
+plot4 <- qplot(confidenceLevels, rules_conf60, geom=c("point", "line"), 
+               xlab="Confidence level", ylab="Number of rules found", 
+               main="Apriori with a confidence level of 60%") + 
+  #scale_y_continuous(breaks=seq(0, 130, 20)) +
+  theme_bw()
+
+# Subplot
+grid.arrange(plot1, plot2, plot3, plot4, ncol=2)
+num_rules <- data.frame(rules_conf90,rules_conf80,rules_conf70,rules_conf60,confidenceLevels)
+
+
+# Number of rules found with a confidence level of 90%, 80%, 70% and 60%
+ggplot(data=num_rules, aes(x=confidenceLevels)) +
+  # Plot line and points (confidence level of 90%)
+  geom_line(aes(y=rules_conf90, colour="confidence level of 90%")) + 
+  geom_point(aes(y=rules_conf90, colour="confidence level of 90%")) +
+  # Plot line and points (confidence level of 80%)
+  geom_line(aes(y=rules_conf80, colour="confidence level of 80%")) +
+  geom_point(aes(y=rules_conf80, colour="confidence level of 80%")) +
+  # Plot line and points (confidence level of 70%)
+  geom_line(aes(y=rules_conf70, colour="confidence level of 70%")) + 
+  geom_point(aes(y=rules_conf70, colour="confidence level of 70%")) +
+  # Plot line and points (confidence level of 60%)
+  geom_line(aes(y=rules_conf60, colour="confidence level of 60%")) +
+  geom_point(aes(y=rules_conf60, colour="confidence level of 60%")) +
+  # Labs and theme
+  labs(x="Confidence levels", y="Number of rules found", 
+       title="Apriori algorithm with different confidence levels") +
+  theme_bw() +
+  theme(legend.title=element_blank())
+
+## Check the performance from the model with 90% confidence and support of 1%
+groceryrules <- arules::apriori(dados, parameter = list(support =
+                                                        .001, confidence = .9))
+
+inspect(sort(groceryrules,by = "lift",decreasing = TRUE))
+inspect(sort(groceryrules,by = "confidence",decreasing = TRUE))
+inspect(sort(groceryrules,by = "support",decreasing = TRUE))
+
+
+## Verify performance related to "berries" item
+berryrules <- subset(groceryrules, items %in% "berries")
+inspect(berryrules)
+
+## Verify redudant rules to remove that
+redudant_rules <- is.redundant(groceryrules)
+redudant_rules
+summary(redudant_rules)
+groceryrules <- groceryrules[!redudant_rules]
+groceryrules
+
+## Verify in the graph
+plot(groceryrules, method = "graph",engine = "htmlwidget", max = 300)
+
+## Saving information in the data.frame
+cesta <- as(groceryrules,"data.frame")
+str(cesta)
+fwrite(cesta,"C:\\Users\\thale\\Desktop\\Cesta_resultado.csv", quote = FALSE, row.names = TRUE, sep = ";" )
