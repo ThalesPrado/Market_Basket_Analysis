@@ -1,4 +1,4 @@
-# Repository created to help pricing professional to make a cross selling system based on apriori algorithm
+# Repository created to help pricing professionals to make a cross selling system based on apriori algorithm
 
 ***
 
